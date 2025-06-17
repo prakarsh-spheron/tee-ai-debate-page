@@ -1,0 +1,540 @@
+<!DOCTYPE html>
+<html lang="en" class="scroll-smooth">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>The Enclave and the Agent: An Interactive Debate</title>
+    <!-- Chosen Palette: Tech Debate Neutral -->
+    <!-- Application Structure Plan: The SPA is designed as an interactive debate to help users understand the complex arguments around TEEs in AI. The structure is thematic, not linear, to facilitate comparison and synthesis. It flows from: 1) A 'Foundations' section with accordions for core concepts (AI Agents, TEEs) to establish a baseline understanding. 2) 'The Core Debate', a central two-column layout visually pitting the 'Thesis' (Pro-TEE) against the 'Anti-Thesis' (Con-TEE) on key issues like security and performance. This direct comparison is the core of the user experience. 3) 'The Challengers', a tabbed section to explore alternative technologies (FHE, FL, DP) as distinct options. 4) 'The Verdict', an interactive chart synthesizing the 'Decision Matrix' from the report, allowing users to dynamically compare technologies based on strategic factors. Gemini API features are integrated to enhance understanding (Explain Simply) and critical thinking (Generate Panel Questions). -->
+    <!-- Visualization & Content Choices: 
+        - Report Info: Definitions of AI Agents & TEEs -> Goal: Inform -> Viz/Method: HTML Accordions + Gemini "Explain Simply" button -> Interaction: Click to expand/collapse; Click to generate simplified text -> Justification: Hides complex info initially for a cleaner landing, allowing users to self-select what they need to learn and to get an even simpler AI-generated summary on demand. -> Library: Vanilla JS, Gemini API.
+        - Report Info: Thesis vs. Anti-thesis arguments -> Goal: Compare/Synthesize -> Viz/Method: Two-column grid + Gemini "Generate Panel Questions" button -> Interaction: Hover on cards; Click to generate debate questions -> Justification: Creates a clear "versus" layout and uses AI to transform the arguments into forward-looking, critical questions, enhancing engagement. -> Library: Vanilla JS, Gemini API.
+        - Report Info: Alternative PETs (FHE, FL, DP) -> Goal: Organize/Compare -> Viz/Method: Tabbed interface -> Interaction: Click to switch content -> Justification: Neatly organizes distinct but related topics, preventing information overload and allowing focused exploration of each alternative. -> Library: Vanilla JS.
+        - Report Info: Strategic Decision Matrix table -> Goal: Synthesize/Compare -> Viz/Method: Interactive Horizontal Bar Chart (Chart.js) with a dropdown selector -> Interaction: Select a 'Strategic Vector' from the dropdown to update the chart data dynamically -> Justification: Transforms a static table into an engaging, explorable tool. -> Library: Chart.js.
+    -->
+    <!-- CONFIRMATION: NO SVG graphics used. NO Mermaid JS used. -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <style>
+        body {
+            font-family: 'Inter', sans-serif;
+            background-color: #f8fafc; /* slate-50 */
+            color: #1e293b; /* slate-800 */
+        }
+        .nav-link.active {
+            color: #2563eb; /* blue-600 */
+            font-weight: 600;
+        }
+        .tab.active {
+            border-color: #2563eb; /* blue-600 */
+            color: #2563eb;
+            background-color: #dbeafe; /* blue-100 */
+        }
+        .accordion-content {
+            max-height: 0;
+            overflow: hidden;
+            transition: max-height 0.5s ease-in-out;
+        }
+        .accordion-button.open .accordion-arrow {
+            transform: rotate(180deg);
+        }
+        .chart-container {
+            position: relative;
+            margin: auto;
+            height: 400px;
+            width: 100%;
+            max-width: 900px;
+        }
+        .gemini-output {
+            background-color: #eef2ff; /* indigo-50 */
+            border-left: 4px solid #4f46e5; /* indigo-600 */
+            padding: 1rem;
+            margin-top: 1rem;
+            border-radius: 0.25rem;
+        }
+        .loader {
+            width: 24px;
+            height: 24px;
+            border: 3px solid #ddd;
+            border-bottom-color: #4f46e5;
+            border-radius: 50%;
+            display: inline-block;
+            box-sizing: border-box;
+            animation: rotation 1s linear infinite;
+        }
+        @keyframes rotation {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+    </style>
+</head>
+<body class="antialiased">
+
+    <!-- Header & Navigation -->
+    <header class="bg-white/80 backdrop-blur-sm sticky top-0 z-50 border-b border-slate-200">
+        <nav class="container mx-auto px-6 py-4 flex justify-between items-center">
+            <h1 class="text-xl md:text-2xl font-bold text-slate-900">The TEE & AI Debate</h1>
+            <div class="hidden md:flex space-x-6 text-slate-600">
+                <a href="#foundations" class="nav-link hover:text-blue-600 transition-colors">Foundations</a>
+                <a href="#debate" class="nav-link hover:text-blue-600 transition-colors">The Debate</a>
+                <a href="#challengers" class="nav-link hover:text-blue-600 transition-colors">The Challengers</a>
+                <a href="#verdict" class="nav-link hover:text-blue-600 transition-colors">The Verdict</a>
+            </div>
+            <div class="md:hidden">
+                <select id="mobile-nav" class="block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500">
+                    <option value="#home">Menu</option>
+                    <option value="#foundations">Foundations</option>
+                    <option value="#debate">The Debate</option>
+                    <option value="#challengers">The Challengers</option>
+                    <option value="#verdict">The Verdict</option>
+                </select>
+            </div>
+        </nav>
+    </header>
+
+    <main class="container mx-auto px-6 py-8 md:py-12">
+
+        <!-- Hero Section -->
+        <section id="home" class="text-center mb-16 md:mb-24">
+            <h2 class="text-4xl md:text-6xl font-bold text-slate-900 mb-4">The Enclave and the Agent</h2>
+            <p class="text-lg md:text-xl text-slate-600 max-w-3xl mx-auto">An interactive analysis of Trusted Execution Environments (TEEs) and their critical, yet contested, role in the future of private and secure AI.</p>
+        </section>
+
+        <!-- Foundations Section -->
+        <section id="foundations" class="mb-16 md:mb-24 scroll-mt-20">
+            <div class="text-center mb-12">
+                <h3 class="text-3xl font-bold text-slate-900">Foundational Concepts</h3>
+                <p class="text-lg text-slate-500 mt-2">Before diving into the debate, it's essential to understand the core technologies. This section provides a primer on autonomous AI agents and the hardware that promises to protect them.</p>
+            </div>
+            <div class="max-w-4xl mx-auto space-y-4">
+                <!-- Accordion 1: AI Agents -->
+                <div class="bg-white border border-slate-200 rounded-lg shadow-sm">
+                    <button class="accordion-button w-full flex justify-between items-center p-5 text-left font-semibold text-slate-800 focus:outline-none">
+                        <span>What is an Autonomous AI Agent?</span>
+                        <span class="accordion-arrow transition-transform duration-300">&#9660;</span>
+                    </button>
+                    <div class="accordion-content">
+                        <div class="p-5 pt-0">
+                            <div class="original-content text-slate-600 space-y-4">
+                                <p>An autonomous AI agent is a sophisticated software system, typically powered by a Large Language Model (LLM), designed to pursue goals and execute multi-step tasks with minimal human intervention. Its power stems from four key architectural pillars:</p>
+                                <ul class="list-disc list-inside space-y-2">
+                                    <li><strong>Brain (Model):</strong> The core LLM (e.g., from Google, Meta) that provides reasoning, understanding, and planning capabilities.</li>
+                                    <li><strong>Memory:</strong> Both short-term memory for immediate context and long-term memory to learn from past interactions, creating a detailed user profile.</li>
+                                    <li><strong>Planning & Reasoning:</strong> The ability to break down a high-level goal into a series of smaller, executable sub-tasks.</li>
+                                    <li><strong>Tools:</strong> Connectors and APIs that allow the agent to interact with the external world—accessing databases, searching the web, or executing code.</li>
+                                </ul>
+                                <p class="font-semibold text-slate-700">The inherent privacy challenge: an agent's utility is tied to its deep access to data, creating a massive attack surface.</p>
+                            </div>
+                            <button class="explain-simply-btn mt-4 inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md shadow-sm text-white bg-indigo-600 hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500">
+                                ✨ Explain Simply
+                            </button>
+                            <div class="gemini-output hidden mt-4"></div>
+                        </div>
+                    </div>
+                </div>
+                <!-- Accordion 2: TEEs -->
+                <div class="bg-white border border-slate-200 rounded-lg shadow-sm">
+                    <button class="accordion-button w-full flex justify-between items-center p-5 text-left font-semibold text-slate-800 focus:outline-none">
+                        <span>What is a Trusted Execution Environment (TEE)?</span>
+                        <span class="accordion-arrow transition-transform duration-300">&#9660;</span>
+                    </button>
+                    <div class="accordion-content">
+                         <div class="p-5 pt-0">
+                            <div class="original-content text-slate-600 space-y-4">
+                                <p>A TEE is a secure, hardware-isolated area of a processor that protects code and data during execution. It creates a "secure enclave" that even the host system's operating system or a cloud provider cannot access. This is achieved through:</p>
+                                <ul class="list-disc list-inside space-y-2">
+                                    <li><strong>Isolation:</strong> The hardware enforces a strict boundary around the TEE's memory, blocking external access.</li>
+                                    <li><strong>Encryption-in-Use:</strong> Data is only in plaintext inside the secure TEE; it is encrypted whenever it is in main system memory.</li>
+                                    <li><strong>Remote Attestation:</strong> A critical feature that allows a user to get a cryptographic proof from the hardware itself, verifying that the correct, untampered code is running inside the enclave before any data is sent. This shifts trust from software policies to verifiable hardware.</li>
+                                </ul>
+                                <p class="font-semibold text-slate-700">Key technologies include Intel SGX/TDX and AMD SEV-SNP, each offering different models of protection (application vs. full VM).</p>
+                            </div>
+                            <button class="explain-simply-btn mt-4 inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md shadow-sm text-white bg-indigo-600 hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500">
+                                ✨ Explain Simply
+                            </button>
+                            <div class="gemini-output hidden mt-4"></div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- The Debate Section -->
+        <section id="debate" class="mb-16 md:mb-24 scroll-mt-20">
+            <div class="text-center mb-12">
+                <h3 class="text-3xl font-bold text-slate-900">The Core Debate: Are TEEs the Solution or a Flawed Premise?</h3>
+                <p class="text-lg text-slate-500 mt-2">Here, we explore the central arguments for and against relying on TEEs for AI privacy. The thesis argues for their necessity, while the anti-thesis highlights critical trade-offs and risks.</p>
+            </div>
+            <div class="grid md:grid-cols-2 gap-8 lg:gap-12" id="debate-arguments">
+                <!-- Thesis Column -->
+                <div class="space-y-6" id="thesis-args">
+                    <h4 class="text-2xl font-bold text-center text-green-700">The Thesis: An Inevitable Bedrock</h4>
+                    <div class="bg-white p-6 rounded-lg border border-green-200 shadow-md hover:shadow-lg transition-shadow">
+                        <h5 class="font-bold text-lg text-green-800 mb-2">Solves the Core Privacy Dilemma</h5>
+                        <p class="text-slate-600">TEEs create a verifiable hardware vault around the entire agentic process—inputs, memory, planning, and tool use. This directly mitigates risks like data leakage and model theft by ensuring sensitive information is never exposed in plaintext to the host system or cloud provider.</p>
+                    </div>
+                    <div class="bg-white p-6 rounded-lg border border-green-200 shadow-md hover:shadow-lg transition-shadow">
+                        <h5 class="font-bold text-lg text-green-800 mb-2">Protects Intellectual Property</h5>
+                        <p class="text-slate-600">Beyond user privacy, TEEs protect the AI model itself. By running inference inside an enclave, companies can prevent their valuable, proprietary models from being stolen or tampered with by a malicious cloud administrator or attacker.</p>
+                    </div>
+                    <div class="bg-white p-6 rounded-lg border border-green-200 shadow-md hover:shadow-lg transition-shadow">
+                        <h5 class="font-bold text-lg text-green-800 mb-2">Enables Trust in Ecosystems</h5>
+                        <p class="text-slate-600">Remote attestation is the key to secure multi-agent systems and data collaboration. It provides a cryptographic "handshake" for agents to verify each other's integrity, enabling trust in decentralized networks and multi-party computation without sharing raw data.</p>
+                    </div>
+                </div>
+
+                <!-- Anti-Thesis Column -->
+                <div class="space-y-6" id="antithesis-args">
+                    <h4 class="text-2xl font-bold text-center text-amber-700">The Anti-Thesis: A Flawed Premise</h4>
+                    <div class="bg-white p-6 rounded-lg border border-amber-200 shadow-md hover:shadow-lg transition-shadow">
+                        <h5 class="font-bold text-lg text-amber-800 mb-2">The Unacceptable Performance Tax</h5>
+                        <p class="text-slate-600">The encryption and isolation that provide security come at a cost. TEEs can impose significant performance overhead, with some studies showing a slowdown of up to 2x or more for CPU tasks. The lack of mature GPU support creates a major bottleneck for high-end AI.</p>
+                    </div>
+                    <div class="bg-white p-6 rounded-lg border border-amber-200 shadow-md hover:shadow-lg transition-shadow">
+                        <h5 class="font-bold text-lg text-amber-800 mb-2">The Security Fallacy</h5>
+                        <p class="text-slate-600">"Trusted" is not absolute. TEEs are vulnerable to sophisticated side-channel attacks that can infer secret data by observing patterns like memory access or power consumption. Trust is also centralized in a few unauditable hardware manufacturers (e.g., Intel, AMD).</p>
+                    </div>
+                     <div class="bg-white p-6 rounded-lg border border-amber-200 shadow-md hover:shadow-lg transition-shadow">
+                        <h5 class="font-bold text-lg text-amber-800 mb-2">The Practicality Hurdle</h5>
+                        <p class="text-slate-600">The TEE ecosystem is fragmented and complex. A lack of standardization leads to vendor lock-in, and developing for TEEs requires specialized skills. The immaturity of tools and libraries creates significant friction for mainstream adoption.</p>
+                    </div>
+                </div>
+            </div>
+             <!-- Gemini Panel Questions Feature -->
+            <div class="mt-16 text-center">
+                 <h3 class="text-2xl font-bold text-slate-900">Take the Debate Further</h3>
+                <p class="text-lg text-slate-500 mt-2 max-w-2xl mx-auto">Click the button below to generate challenging questions for a hypothetical panel of TEE and non-TEE compute founders.</p>
+                <button id="generate-questions-btn" class="mt-6 inline-flex items-center px-6 py-3 border border-transparent text-base font-medium rounded-md shadow-sm text-white bg-indigo-600 hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500">
+                    ✨ Generate Panel Questions
+                </button>
+                <div id="panel-questions-output" class="gemini-output hidden text-left max-w-4xl mx-auto"></div>
+            </div>
+        </section>
+
+        <!-- The Challengers Section -->
+        <section id="challengers" class="mb-16 md:mb-24 scroll-mt-20">
+            <div class="text-center mb-12">
+                <h3 class="text-3xl font-bold text-slate-900">The Challengers: Alternatives to TEEs</h3>
+                <p class="text-lg text-slate-500 mt-2">TEEs are not the only option. Several software- and cryptography-based Privacy-Enhancing Technologies (PETs) offer different trade-offs and, in some cases, stronger theoretical guarantees.</p>
+            </div>
+            <div class="max-w-4xl mx-auto">
+                <div class="border-b border-gray-200 mb-4">
+                    <nav class="-mb-px flex space-x-4 md:space-x-8" aria-label="Tabs">
+                        <button class="tab active" data-tab="fhe">Homomorphic Encryption (FHE)</button>
+                        <button class="tab" data-tab="fl">Federated Learning (FL)</button>
+                        <button class="tab" data-tab="dp">Differential Privacy (DP)</button>
+                    </nav>
+                </div>
+                <div id="tab-content" class="bg-white p-6 rounded-lg border border-slate-200 shadow-sm">
+                    <!-- FHE Content -->
+                    <div class="tab-pane active" id="fhe">
+                        <h4 class="font-bold text-xl text-slate-800 mb-3">Fully Homomorphic Encryption (FHE)</h4>
+                        <p class="text-slate-600 mb-4">The "holy grail" of cryptography. FHE allows for computation directly on encrypted data without ever decrypting it, providing a pure mathematical security guarantee with no trusted hardware required.</p>
+                        <div class="grid sm:grid-cols-2 gap-4">
+                            <div class="bg-green-50 p-4 rounded-lg border border-green-200">
+                                <strong class="text-green-800">Pro:</strong> Eliminates trust in hardware and protects against side-channels. Strongest theoretical security.
+                            </div>
+                            <div class="bg-amber-50 p-4 rounded-lg border border-amber-200">
+                                <strong class="text-amber-800">Con:</strong> Prohibitive performance overhead. Orders of magnitude slower than plaintext, making it impractical for most current real-time AI tasks.
+                            </div>
+                        </div>
+                    </div>
+                    <!-- FL Content -->
+                    <div class="tab-pane hidden" id="fl">
+                        <h4 class="font-bold text-xl text-slate-800 mb-3">Federated Learning (FL)</h4>
+                        <p class="text-slate-600 mb-4">A decentralized approach where the AI model is sent to the data, not the other way around. Models are trained locally on user devices or in private enterprise clouds, and only model updates—not raw data—are shared.</p>
+                         <div class="grid sm:grid-cols-2 gap-4">
+                            <div class="bg-green-50 p-4 rounded-lg border border-green-200">
+                                <strong class="text-green-800">Pro:</strong> Inherently privacy-preserving as raw data never leaves the owner's control. Excellent for compliance and training on distributed data.
+                            </div>
+                            <div class="bg-amber-50 p-4 rounded-lg border border-amber-200">
+                                <strong class="text-amber-800">Con:</strong> Primarily for model *training*, not for protecting single, real-time agent queries. Model updates can still leak information.
+                            </div>
+                        </div>
+                    </div>
+                    <!-- DP Content -->
+                    <div class="tab-pane hidden" id="dp">
+                        <h4 class="font-bold text-xl text-slate-800 mb-3">Differential Privacy (DP)</h4>
+                        <p class="text-slate-600 mb-4">A framework for providing a strong, statistical privacy guarantee by injecting calibrated noise into a dataset or algorithm output. This makes it mathematically impossible to determine if any single individual's data was part of an analysis.</p>
+                         <div class="grid sm:grid-cols-2 gap-4">
+                            <div class="bg-green-50 p-4 rounded-lg border border-green-200">
+                                <strong class="text-green-800">Pro:</strong> Provides a provable, quantifiable measure of privacy. Proven at scale by major tech companies for learning aggregate trends.
+                            </div>
+                            <div class="bg-amber-50 p-4 rounded-lg border border-amber-200">
+                                <strong class="text-amber-800">Con:</strong> Involves a fundamental trade-off between privacy and accuracy. Poorly suited for protecting a single, high-fidelity query to an agent, as the necessary noise would destroy its utility.
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- The Verdict Section -->
+        <section id="verdict" class="scroll-mt-20">
+            <div class="text-center mb-12">
+                <h3 class="text-3xl font-bold text-slate-900">The Verdict: A Strategic Decision</h3>
+                <p class="text-lg text-slate-500 mt-2">The "best" technology is context-dependent. This interactive matrix allows you to compare the leading PETs across key strategic vectors to understand their unique strengths and weaknesses.</p>
+            </div>
+            <div class="max-w-5xl mx-auto bg-white p-6 md:p-8 rounded-lg border border-slate-200 shadow-sm">
+                <div class="md:flex md:items-center md:justify-between mb-6">
+                    <h4 class="text-xl font-bold text-slate-800 mb-4 md:mb-0">Technology Comparison Matrix</h4>
+                    <div>
+                        <label for="vector-select" class="block text-sm font-medium text-gray-700 mr-2">Compare by:</label>
+                        <select id="vector-select" class="mt-1 block w-full md:w-auto pl-3 pr-10 py-2 text-base border-gray-300 focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm rounded-md shadow-sm">
+                            <option value="security">Security Guarantee</option>
+                            <option value="performance">Performance Overhead</option>
+                            <option value="maturity">Maturity & Time-to-Market</option>
+                            <option value="scalability">Scalability</option>
+                            <option value="compliance">Compliance Narrative</option>
+                        </select>
+                    </div>
+                </div>
+                <div class="chart-container">
+                    <canvas id="petChart"></canvas>
+                </div>
+            </div>
+             <div class="text-center mt-12">
+                <h4 class="text-2xl font-bold text-slate-900">The Road Ahead: A Hybrid Future</h4>
+                <p class="text-lg text-slate-600 max-w-3xl mx-auto mt-4">No single technology is a silver bullet. The future of private AI will likely be a hybrid, "defense-in-depth" system. Imagine models **trained** with Federated Learning, with updates protected by Differential Privacy, and then **deployed** for inference inside a TEE. This layered approach, leveraging the unique strengths of each technology, is the most promising path toward a future that is both powerful and private.</p>
+            </div>
+        </section>
+
+    </main>
+    
+    <footer class="text-center py-8 mt-12 border-t border-slate-200">
+        <p class="text-slate-500">An Interactive Report created from source material on TEEs, AI, and Privacy.</p>
+    </footer>
+
+    <script>
+        document.addEventListener('DOMContentLoaded', function () {
+            // Mobile Navigation
+            const mobileNav = document.getElementById('mobile-nav');
+            mobileNav.addEventListener('change', () => {
+                if (mobileNav.value) {
+                    window.location.hash = mobileNav.value;
+                }
+            });
+
+            // Accordion Logic
+            const accordionButtons = document.querySelectorAll('.accordion-button');
+            accordionButtons.forEach(button => {
+                button.addEventListener('click', () => {
+                    const content = button.nextElementSibling;
+                    const accordion = button.closest('.bg-white');
+                    button.classList.toggle('open');
+                    if (content.style.maxHeight) {
+                        content.style.maxHeight = null;
+                    } else {
+                        content.style.maxHeight = content.scrollHeight + "px";
+                        // Auto-resize if Gemini content is added later
+                        setTimeout(() => {
+                           if(button.classList.contains('open')) {
+                               content.style.maxHeight = content.scrollHeight + "px";
+                           }
+                        }, 500);
+                    }
+                });
+            });
+
+            // Tabs Logic
+            const tabs = document.querySelectorAll('.tab');
+            const tabPanes = document.querySelectorAll('.tab-pane');
+            tabs.forEach(tab => {
+                tab.addEventListener('click', () => {
+                    tabs.forEach(t => t.classList.remove('active'));
+                    tab.classList.add('active');
+                    
+                    const targetId = tab.dataset.tab;
+                    tabPanes.forEach(pane => {
+                        if (pane.id === targetId) {
+                            pane.classList.remove('hidden');
+                            pane.classList.add('active');
+                        } else {
+                            pane.classList.add('hidden');
+                            pane.classList.remove('active');
+                        }
+                    });
+                });
+            });
+
+            // Intersection Observer for active nav link
+            const sections = document.querySelectorAll('section');
+            const navLinks = document.querySelectorAll('.nav-link');
+            const observer = new IntersectionObserver((entries) => {
+                entries.forEach(entry => {
+                    if (entry.isIntersecting) {
+                        navLinks.forEach(link => {
+                            link.classList.toggle('active', link.getAttribute('href').substring(1) === entry.target.id);
+                        });
+                    }
+                });
+            }, { rootMargin: '-50% 0px -50% 0px' });
+
+            sections.forEach(section => {
+                observer.observe(section);
+            });
+
+
+            // Chart.js Logic
+            const chartData = {
+                labels: ['TEEs', 'FHE', 'FL', 'DP'],
+                datasets: {
+                    security: [{
+                        label: 'Security Guarantee (1=Weak, 5=Strong)',
+                        data: [3, 5, 3, 4],
+                        backgroundColor: ['#60a5fa', '#34d399', '#fbbf24', '#f87171'],
+                    }],
+                    performance: [{
+                        label: 'Performance Overhead (1=Low, 5=Prohibitive)',
+                        data: [2, 5, 1, 1],
+                        backgroundColor: ['#60a5fa', '#34d399', '#fbbf24', '#f87171'],
+                    }],
+                    maturity: [{
+                        label: 'Maturity & Time-to-Market (1=Low, 5=High)',
+                        data: [5, 1, 4, 5],
+                        backgroundColor: ['#60a5fa', '#34d399', '#fbbf24', '#f87171'],
+                    }],
+                    scalability: [{
+                        label: 'Scalability (1=Low, 5=High)',
+                        data: [5, 1, 5, 5],
+                        backgroundColor: ['#60a5fa', '#34d399', '#fbbf24', '#f87171'],
+                    }],
+                    compliance: [{
+                        label: 'Compliance Narrative (1=Weak, 5=Strong)',
+                        data: [5, 4, 5, 5],
+                        backgroundColor: ['#60a5fa', '#34d399', '#fbbf24', '#f87171'],
+                    }],
+                }
+            };
+
+            const ctx = document.getElementById('petChart').getContext('2d');
+            const petChart = new Chart(ctx, {
+                type: 'bar',
+                data: {
+                    labels: chartData.labels,
+                    datasets: chartData.datasets.security
+                },
+                options: {
+                    indexAxis: 'y',
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    scales: {
+                        x: {
+                            beginAtZero: true,
+                            max: 5,
+                            grid: {
+                                color: '#e5e7eb'
+                            },
+                            ticks: {
+                                color: '#475569'
+                            }
+                        },
+                        y: {
+                           grid: { display: false },
+                           ticks: { color: '#475569' }
+                        }
+                    },
+                    plugins: {
+                        legend: { display: true, position: 'top', labels: { color: '#1e293b' } },
+                        tooltip: { backgroundColor: '#1e293b', titleColor: '#f8fafc', bodyColor: '#f8fafc' }
+                    }
+                }
+            });
+
+            const vectorSelect = document.getElementById('vector-select');
+            vectorSelect.addEventListener('change', (e) => {
+                const selectedVector = e.target.value;
+                petChart.data.datasets = chartData.datasets[selectedVector];
+                petChart.options.scales.x.max = 5;
+                petChart.update();
+            });
+
+            // Gemini API Logic
+            const API_KEY = "";
+            const API_URL = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=${API_KEY}`;
+            
+            async function callGeminiAPI(prompt) {
+                const payload = {
+                    contents: [{
+                        role: "user",
+                        parts: [{ text: prompt }]
+                    }]
+                };
+
+                const response = await fetch(API_URL, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(payload)
+                });
+
+                if (!response.ok) {
+                    throw new Error(`API call failed with status: ${response.status}`);
+                }
+                
+                const result = await response.json();
+                
+                if (result.candidates && result.candidates.length > 0 &&
+                    result.candidates[0].content && result.candidates[0].content.parts &&
+                    result.candidates[0].content.parts.length > 0) {
+                    return result.candidates[0].content.parts[0].text;
+                } else {
+                    console.error("Unexpected API response structure:", result);
+                    return "Sorry, I couldn't get a response. Please check the console for details.";
+                }
+            }
+            
+            // "Explain Simply" Buttons
+            document.querySelectorAll('.explain-simply-btn').forEach(button => {
+                button.addEventListener('click', async (e) => {
+                    const parent = e.target.closest('.p-5');
+                    const originalContent = parent.querySelector('.original-content').innerText;
+                    const outputDiv = parent.querySelector('.gemini-output');
+                    
+                    outputDiv.classList.remove('hidden');
+                    outputDiv.innerHTML = '<div class="flex items-center"><div class="loader mr-4"></div><span>Generating explanation...</span></div>';
+                    
+                    const prompt = `Please explain the following concept in simple terms, like you're explaining it to a smart high school student. Keep it concise (under 80 words) and use an analogy if possible. The concept is:\n\n"${originalContent}"`;
+
+                    try {
+                        const explanation = await callGeminiAPI(prompt);
+                        outputDiv.innerHTML = explanation.replace(/\n/g, '<br>');
+                    } catch (error) {
+                        console.error(error);
+                        outputDiv.innerHTML = 'An error occurred while generating the explanation. Please try again later.';
+                    }
+
+                    // Recalculate accordion height
+                    const accordionContent = parent.closest('.accordion-content');
+                    const accordionButton = accordionContent.previousElementSibling;
+                    if (accordionButton.classList.contains('open')) {
+                        accordionContent.style.maxHeight = accordionContent.scrollHeight + "px";
+                    }
+                });
+            });
+
+            // "Generate Panel Questions" Button
+            document.getElementById('generate-questions-btn').addEventListener('click', async (e) => {
+                const outputDiv = document.getElementById('panel-questions-output');
+                outputDiv.classList.remove('hidden');
+                outputDiv.innerHTML = '<div class="flex items-center justify-center"><div class="loader mr-4"></div><span>Generating questions...</span></div>';
+
+                const thesisArgs = Array.from(document.querySelectorAll('#thesis-args .p-6')).map(el => el.innerText).join('\n---\n');
+                const antithesisArgs = Array.from(document.querySelectorAll('#antithesis-args .p-6')).map(el => el.innerText).join('\n---\n');
+
+                const prompt = `You are a moderator for a tech panel on AI and privacy. The panel includes two founders building solutions with Trusted Execution Environments (TEEs) and one founder building without them. Based on the following arguments, generate 5 insightful and challenging questions for the panel. Frame the questions to provoke a real debate between the panelists.\n\nArguments FOR TEEs (The Thesis):\n${thesisArgs}\n\nArguments AGAINST TEEs (The Anti-Thesis):\n${antithesisArgs}\n\nGenerate the questions now as a numbered list.`;
+
+                try {
+                    const questions = await callGeminiAPI(prompt);
+                    outputDiv.innerHTML = questions.replace(/\n/g, '<br>');
+                } catch (error) {
+                    console.error(error);
+                    outputDiv.innerHTML = 'An error occurred while generating the questions. Please try again later.';
+                }
+            });
+        });
+    </script>
+</body>
+</html>
